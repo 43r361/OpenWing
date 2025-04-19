@@ -11,7 +11,7 @@ typedef struct
 
 struct_message myData;
 
-void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {
+void on_data_receive(const uint8_t *mac, const uint8_t *incomingData, int len) {
     memcpy(&myData, incomingData, sizeof(myData));
     Serial.print("Bytes received: ");
     Serial.println(len);
@@ -35,7 +35,7 @@ void setup() {
         Serial.println("Error initializing ESP-NOW");
         return;
     }
-    esp_now_register_recv_cb(esp_now_recv_cb_t(OnDataRecv));
+    esp_now_register_recv_cb(esp_now_recv_cb_t(on_data_receive));
 }
 
 void loop() {}
