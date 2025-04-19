@@ -14,9 +14,9 @@ HMC5883L_Simple Compass;
 #define LSB_PER_G 4096
 #define CALIBRATION_CYCLES 2000
 // in Hz
-#define FREQUENCY 250
-// in ms
-#define PERIOD 0.004
+#define FREQUENCY (250)
+// in s
+#define PERIOD (1.0 / (float)FREQUENCY)
 
 float rateRoll = 0, ratePitch = 0, rateYaw = 0;
 float rateCalibrationRoll = 0, rateCalibrationPitch = 0, rateCalibrationYaw = 0;
@@ -251,7 +251,7 @@ void loop() {
 
     printKalmanAngles();
 
-    // do nothing until 4 us have passed
-    while (micros() - loopTimer < 4000);
+    // do nothing until it's time for the next loop (every [PERIOD] seconds)
+    while (micros() - loopTimer < PERIOD * 1000000);
     loopTimer = micros();
 }
