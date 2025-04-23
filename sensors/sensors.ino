@@ -7,8 +7,8 @@
 Adafruit_BMP085 bmp;
 HMC5883L_Simple Compass;
 
-#define I2C_SDA 21
-#define I2C_SCL 22
+#define I2C_SDA 41
+#define I2C_SCL 42
 
 #define LSB_PER_DEG_PER_SEC 65.5
 #define LSB_PER_G 4096
@@ -88,9 +88,9 @@ void printAngles() {
 
 void printKalmanAngles() {
     // Serial.println("Kalman angles:");
-    Serial.print(-kalmanAngleRoll);
+    Serial.print(kalmanAngleRoll);
     Serial.print(", ");
-    Serial.print(kalmanAnglePitch);
+    Serial.print(-kalmanAnglePitch);
     Serial.print(", ");
     Serial.println(angleYaw);
 }

@@ -8,7 +8,7 @@ import serial
 
 # ser = serial.Serial('/dev/ttyACM0', 38400, timeout=1)  #for pico
 # ser = serial.Serial('/dev/tty.usbserial', 38400, timeout=1)
-ser = serial.Serial("COM3", 115200, timeout=1)
+ser = serial.Serial("/dev/ttyACM0", 115200, timeout=1)
 
 ax = ay = az = 0.0
 yaw_mode = False
@@ -36,7 +36,8 @@ def init():
 
 def drawText(position, textString):
     font = pygame.font.SysFont("Courier", 18, True)
-    textSurface = font.render(textString, True, (255, 255, 255, 255), (0, 0, 0, 255))
+    textSurface = font.render(
+        textString, True, (255, 255, 255, 255), (0, 0, 0, 255))
     textData = pygame.image.tostring(textSurface, "RGBA", True)
     glRasterPos3d(*position)
     glDrawPixels(
@@ -55,7 +56,8 @@ def draw():
     glTranslatef(0, 0.0, -7.0)
 
     osd_text = (
-        "pitch: " + str("{0:.2f}".format(ay)) + ", roll: " + str("{0:.2f}".format(ax))
+        "pitch: " + str("{0:.2f}".format(ay)) +
+        ", roll: " + str("{0:.2f}".format(ax))
     )
 
     if yaw_mode:

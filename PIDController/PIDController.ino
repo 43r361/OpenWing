@@ -265,7 +265,7 @@ void loop() {
   }
 
   for (int i = 0; i < 4; i++) {
-    motors[i].writeMicroseconds(input[i]);
+    motors[i].writeMicroseconds(round(input[i]));
   }
 
   // do nothing until it's time for the next loop (every [PERIOD] seconds)
