@@ -53,9 +53,9 @@ int readAverage(int pin) {
 // map the read value while taking the center and deadzone variables into account
 int mapJoystickDelta(int value, int center, int min, int max, int outMin, int outCenter, int outMax) {
     if (value < center - DEADZONE) {
-        return map(value, min, center - DEADZONE, outMin, 0);
+        return map(value, min, center - DEADZONE, outMin, outCenter);
     } else if (value > center + DEADZONE) {
-        return map(value, center + DEADZONE, max, 0, outMax);
+        return map(value, center + DEADZONE, max, outCenter, outMax);
     } else {
         return outCenter;
     }
@@ -64,7 +64,8 @@ int mapJoystickDelta(int value, int center, int min, int max, int outMin, int ou
 // the MAC address where we try to send the processed values
 // 84:cc:a8:47:10:fc (current esp)
 // 30:30:f9:69:55:20 (old esp)
-uint8_t broadcast_address[] = {0x84, 0xcc, 0xa8, 0x47, 0x10, 0xfc};
+// uint8_t broadcast_address[] = {0x84, 0xcc, 0xa8, 0x47, 0x10, 0xfc};
+uint8_t broadcast_address[] = {0x30, 0x30, 0xf9, 0x69, 0x55, 0x20};
 
 // the message structure when sending data through ESP NOW
 typedef struct
@@ -147,7 +148,8 @@ void loop() {
     data.throttle = mappedX1 / (float)100;
     data.yaw = mappedY1 / (float)100;
 
-    // Serial.printf("T: %+.2f; Y: %+.2f; P: %+.2f; R: %+.2f\n", data.throttle, data.yaw, data.pitch, data.roll);
+    // Serial.printf("X1: %+-4d; Y1: %+-4d; X2: %+-4d; Y2: %+-4d\n", analogRead(VRX1_PIN), analogRead(VRY1_PIN), analogRead(VRX2_PIN), analogRead(VRY2_PIN));
+    Serial.printf("T: %+.2f; Y: %+.2f; P: %+.2f; R: %+.2f\n", data.throttle, data.yaw, data.pitch, data.roll);
 
     esp_err_t result = esp_now_send(broadcast_address, (uint8_t*)&data, sizeof(data));
 
