@@ -7,7 +7,7 @@
 #define VRY2_PIN (36)
 
 // in Hz
-#define FREQUENCY (250)
+#define FREQUENCY (20)
 // in s
 #define PERIOD (1 / (float)FREQUENCY)
 

@@ -5,10 +5,10 @@
 #include "I2Cdev.h"
 
 Adafruit_BMP085 bmp;
-HMC5883L_Simple Compass;
+HMC5883L_Simple compass;
 
-#define I2C_SDA 41
-#define I2C_SCL 42
+#define I2C_SDA 21
+#define I2C_SCL 22
 
 #define LSB_PER_DEG_PER_SEC 65.5
 #define LSB_PER_G 4096
@@ -23,7 +23,7 @@ float rateCalibrationRoll = 0, rateCalibrationPitch = 0, rateCalibrationYaw = 0;
 bool calibrated = false;
 
 float accX = 0, accY = 0, accZ = 0;
-// TODO: calibrate
+// these values can be set to fix offsets in the accelerometer readings
 float accCalibrationX = 0, accCalibrationY = 0, accCalibrationZ = 0;
 float angleRoll = 0, anglePitch = 0, angleYaw = 0;
 
@@ -48,7 +48,7 @@ void kalman1d(float state, float uncertainty, float input, float measurement) {
     uncertainty += PERIOD * PERIOD * 4 * 4;
 
     // calculate the kalman gain based on previous calculations
-    float gain = uncertainty * 1 / (1 * uncertainty + 3 * 3);
+    float gain = uncertainty / (uncertainty + 3 * 3);
 
     // update the predicted state
     state += gain * (measurement - state);
@@ -62,7 +62,7 @@ void kalman1d(float state, float uncertainty, float input, float measurement) {
 }
 
 void printRates() {
-    Serial.println("Rates:");
+    // Serial.println("Rates:");
     Serial.print(rateRoll);
     Serial.print(", ");
     Serial.print(ratePitch);
@@ -71,7 +71,7 @@ void printRates() {
 }
 
 void printAcceleration() {
-    Serial.println("Acceleration:");
+    // Serial.println("Acceleration:");
     Serial.print(accX);
     Serial.print(", ");
     Serial.print(accY);
@@ -80,10 +80,12 @@ void printAcceleration() {
 }
 
 void printAngles() {
-    Serial.println("Angles:");
+    // Serial.println("Angles:");
     Serial.print(angleRoll);
     Serial.print(", ");
-    Serial.println(anglePitch);
+    Serial.print(anglePitch);
+    Serial.print(", ");
+    Serial.println(angleYaw);
 }
 
 void printKalmanAngles() {
@@ -96,12 +98,6 @@ void printKalmanAngles() {
 }
 
 void readAccelerometer() {
-    // configure the accelerometer's full scale range (4096 LSB/g)
-    Wire.beginTransmission(0x68);
-    Wire.write(0x1C);
-    Wire.write(0x10);
-    Wire.endTransmission();
-
     // access the registers, storing the accelerometer values
     Wire.beginTransmission(0x68);
     Wire.write(0x3B);
@@ -128,18 +124,6 @@ void readAccelerometer() {
 }
 
 void readGyro() {
-    // activate the gyroscope's low pass filter (reduces vibration noise)
-    Wire.beginTransmission(0x68);
-    Wire.write(0x1A);
-    Wire.write(0x05);
-    Wire.endTransmission();
-
-    // configure the gyroscope's full scale range (65.5 LSB/deg/s)
-    Wire.beginTransmission(0x68);
-    Wire.write(0x1B);
-    Wire.write(0x8);
-    Wire.endTransmission();
-
     // access the registers, storing the gyroscope values
     Wire.beginTransmission(0x68);
     Wire.write(0x43);
@@ -171,11 +155,29 @@ void readAll() {
     readGyro();
 }
 
-void bootMpu6050(void) {
+void bootGy87() {
     // start the mpu6050
     Wire.beginTransmission(0x68);
     Wire.write(0x6B);
     Wire.write(0x00);
+    Wire.endTransmission();
+
+    // configure the accelerometer's full scale range (4096 LSB/g)
+    Wire.beginTransmission(0x68);
+    Wire.write(0x1C);
+    Wire.write(0x10);
+    Wire.endTransmission();
+
+    // activate the gyroscope's low pass filter (reduces vibration noise)
+    Wire.beginTransmission(0x68);
+    Wire.write(0x1A);
+    Wire.write(0x05);
+    Wire.endTransmission();
+
+    // configure the gyroscope's full scale range (65.5 LSB/deg/s)
+    Wire.beginTransmission(0x68);
+    Wire.write(0x1B);
+    Wire.write(0x8);
     Wire.endTransmission();
 
     // calibrate the gyroscope
@@ -215,7 +217,7 @@ void setup() {
     // give the mpu6050 time to start
     delay(250);
 
-    bootMpu6050();
+    bootGy87();
 
     // initialize bmp085
     if (!bmp.begin()) {
@@ -225,10 +227,10 @@ void setup() {
     }
 
     // initialize hmc5883l
-    Compass.SetDeclination(23, 35, 'E');
-    Compass.SetSamplingMode(COMPASS_SINGLE);
-    Compass.SetScale(COMPASS_SCALE_130);
-    Compass.SetOrientation(COMPASS_HORIZONTAL_X_NORTH);
+    compass.SetDeclination(23, 35, 'E');
+    compass.SetSamplingMode(COMPASS_SINGLE);
+    compass.SetScale(COMPASS_SCALE_130);
+    compass.SetOrientation(COMPASS_HORIZONTAL_X_NORTH);
 }
 
 void loop() {
