@@ -6,21 +6,21 @@
 #include "I2Cdev.h"
 #include <ESP32Servo.h>  // ESP32Servo library installed by Library Manager
 
-//sensor macros
+// sensor macros
 
-#define I2C_SDA 21
-#define I2C_SCL 22
+#define I2C_SDA 41
+#define I2C_SCL 42
 #define RGB_PIN 48
 
 #define LSB_PER_DEG_PER_SEC 65.5
 #define LSB_PER_G 4096
 #define CALIBRATION_CYCLES 2000
 
+#define ESC_PIN1 (39)
+#define ESC_PIN2 (38)
 
-#define ESC_PIN1 (9)
-#define ESC_PIN2 (20)
-#define ESC_PIN3 (18)  // unuse
-#define ESC_PIN4 (10)
+#define ESC_PIN3 (10)
+#define ESC_PIN4 (9)
 
 // in Hz
 #define FREQUENCY (250)
@@ -30,7 +30,6 @@
 // throtle in ppm values
 #define MIN_SPEED 1148  // 1148 | 1000 both values depend on the motor
 #define MAX_SPEED 1832  // 1832
-
 
 // sensor vals
 float rateRoll = 0, ratePitch = 0, rateYaw = 0;
@@ -47,10 +46,10 @@ Servo motors[4];
 uint32_t loopTimer = 0;
 
 // in a cross or H motor configuration
-// motor 1 front right
-// motor 2 bottom right
-// motor 3 bottom left
-// motor 4 front left
+// motor 1 front
+// motor 2 right
+// motor 3 bottom
+// motor 4 left
 
 // this type of controller expects the values to be in degrees per second
 // range -70 - 70 degrees for yaw, roll and pitch
@@ -114,14 +113,18 @@ pid_return_t pid_equation(float Error, pid_constants_t PID_const, float Previous
   float Iterm = PreviousIterm + PID_const.I * (Error + PreviousError) * PERIOD;
 
   // use to avoid integral wind up
-  if (Iterm > 400) Iterm = 400;
-  else if (Iterm < -400) Iterm = -400;
+  if (Iterm > 400)
+    Iterm = 400;
+  else if (Iterm < -400)
+    Iterm = -400;
 
   float Dterm = PID_const.D * (Error - PreviousError) / PERIOD;
   float PIDOutput = Pterm + Iterm + Dterm;
   // limit to -400  400
-  if (PIDOutput > 400) PIDOutput = 400;
-  else if (PIDOutput < -400) PIDOutput = -400;
+  if (PIDOutput > 400)
+    PIDOutput = 400;
+  else if (PIDOutput < -400)
+    PIDOutput = -400;
 
   pid_return_t output;
   output.Iterm = Iterm;
@@ -178,7 +181,7 @@ void setup() {
   motor_setup();
 
   // avoid accidental lift
-  while (controllerVals.throttle > 0.10) {
+  while (controllerVals.throttle < 0.10) {
     delay(4);
   }
   // indicate that setup is done
@@ -234,7 +237,6 @@ void loop() {
   float InputRoll = rollReturn.PIDOutput;
   float InputYaw = yawReturn.PIDOutput;
 
-
   // limit throttle
   controllerVals.throttle = min(0.8f, controllerVals.throttle);
   float InputThrottle = throttle_to_input(controllerVals.throttle);
@@ -243,29 +245,34 @@ void loop() {
   // 0.00 - 0.25;
   // This is for a H or Cross motor position
 
-  input[0] = InputThrottle - InputPitch - InputRoll - InputYaw;  // to show basic control
-  input[1] = InputThrottle + InputPitch - InputRoll + InputYaw;
-  input[2] = InputThrottle + InputPitch + InputRoll - InputYaw;
-  input[3] = InputThrottle - InputPitch + InputRoll + InputYaw;
+  // inputPerc[0]=myData.throttle-myData.pitch-myData.yaw;
+  // inputPerc[1]=myData.throttle-myData.roll+myData.yaw;
+  // inputPerc[2]=myData.throttle+myData.pitch-myData.yaw;
+  // inputPerc[3]=myData.throttle+myData.roll+myData.yaw;
+
+  // InputYaw = 0;
+  input[0] = InputThrottle - InputPitch + InputYaw;  // to show basic control
+  input[1] = InputThrottle - InputRoll - InputYaw;
+  input[2] = InputThrottle + InputPitch + InputYaw;
+  input[3] = InputThrottle + InputRoll - InputYaw;
 
   for (int i = 0; i < 4; i++) {
     // limit so the motors don't stop
     input[i] = max(input[i], throttle_to_input(0.10f));  // 0.10 should be 0.20 used for showcasing
     // stop it from exeding max limit
-    input[i] = min(input[i], throttle_to_input(0.60f));  // should be 1.00 but 0.60 is used for showcasing
+    input[i] = min(input[i], throttle_to_input(0.80f));  // should be 1.00 but 0.60 is used for showcasing
   }
 
-
   // stop the motor if the values are low
-  if (InputThrottle < 0.04) {
+  if (controllerVals.throttle < 0.04) {
     for (int i = 0; i < 4; i++) {
       input[i] = MIN_SPEED;
     }
     reset_pid();
-  }
-
-  for (int i = 0; i < 4; i++) {
-    motors[i].writeMicroseconds(round(input[i]));
+  } else {
+    for (int i = 0; i < 4; i++) {
+      motors[i].writeMicroseconds(round(input[i]));
+    }
   }
 
   // do nothing until it's time for the next loop (every [PERIOD] seconds)
