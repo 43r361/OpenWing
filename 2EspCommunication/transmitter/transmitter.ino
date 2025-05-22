@@ -38,10 +38,12 @@ const int Y2_MAX = 4095;
 uint32_t loopTimer;
 
 // read input [SAMPLES] times and take the average
-int readAverage(int pin) {
+int readAverage(int pin)
+{
     long sum = 0;
 
-    for (int i = 0; i < SAMPLES; i++) {
+    for (int i = 0; i < SAMPLES; i++)
+    {
         sum += analogRead(pin);
 
         delayMicroseconds(500);
@@ -51,12 +53,18 @@ int readAverage(int pin) {
 }
 
 // map the read value while taking the center and deadzone variables into account
-int mapJoystickDelta(int value, int center, int min, int max, int outMin, int outCenter, int outMax) {
-    if (value < center - DEADZONE) {
+int mapJoystickDelta(int value, int center, int min, int max, int outMin, int outCenter, int outMax)
+{
+    if (value < center - DEADZONE)
+    {
         return map(value, min, center - DEADZONE, outMin, outCenter);
-    } else if (value > center + DEADZONE) {
+    }
+    else if (value > center + DEADZONE)
+    {
         return map(value, center + DEADZONE, max, outCenter, outMax);
-    } else {
+    }
+    else
+    {
         return outCenter;
     }
 }
@@ -78,19 +86,23 @@ typedef struct
 
 struct_message data;
 
-void on_data_send(const uint8_t* mac, esp_now_send_status_t status) {
-    if (status != ESP_NOW_SEND_SUCCESS) {
+void on_data_send(const uint8_t *mac, esp_now_send_status_t status)
+{
+    if (status != ESP_NOW_SEND_SUCCESS)
+    {
         Serial.print("\r\nLast Packet Send Status: Delivery fail\r\n");
     }
 }
 
 esp_now_peer_info_t peerInfo;
 
-void setup() {
+void setup()
+{
     Serial.begin(115200);
     WiFi.mode(WIFI_MODE_STA);
 
-    if (esp_now_init() != ESP_OK) {
+    if (esp_now_init() != ESP_OK)
+    {
         Serial.println("Error initializing ESP-NOW");
         return;
     }
@@ -101,7 +113,8 @@ void setup() {
     peerInfo.channel = 0;
     peerInfo.encrypt = false;
 
-    if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+    if (esp_now_add_peer(&peerInfo) != ESP_OK)
+    {
         Serial.println("Failed to add peer");
         return;
     }
@@ -129,7 +142,8 @@ void setup() {
     Y2_CENTER = averageY2;
 }
 
-void loop() {
+void loop()
+{
     int averageX1 = readAverage(VRX1_PIN);
     int averageY1 = readAverage(VRY1_PIN);
 
@@ -139,21 +153,22 @@ void loop() {
     int averageX2 = readAverage(VRX2_PIN);
     int averageY2 = readAverage(VRY2_PIN);
 
-    int mappedX2 = mapJoystickDelta(averageX2, X2_CENTER, X2_MIN, X2_MAX, -25, 0, 25);
-    int mappedY2 = mapJoystickDelta(averageY2, Y2_CENTER, Y2_MIN, Y2_MAX, -25, 0, 25);
+    int mappedX2 = mapJoystickDelta(averageX2, X2_CENTER, X2_MIN, X2_MAX, -50, 0, 50);
+    int mappedY2 = mapJoystickDelta(averageY2, Y2_CENTER, Y2_MIN, Y2_MAX, -50, 0, 50);
 
     // we want the values as percentages so we convert them to floats
-    data.pitch = mappedX2 / (float)100;
-    data.roll = mappedY2 / (float)100;
+    data.pitch = mappedX2;
+    data.roll = mappedY2;
     data.throttle = mappedX1 / (float)100;
-    data.yaw = mappedY1 / (float)100;
+    data.yaw = mappedY1;
 
     // Serial.printf("X1: %+-4d; Y1: %+-4d; X2: %+-4d; Y2: %+-4d\n", analogRead(VRX1_PIN), analogRead(VRY1_PIN), analogRead(VRX2_PIN), analogRead(VRY2_PIN));
     Serial.printf("T: %+.2f; Y: %+.2f; P: %+.2f; R: %+.2f\n", data.throttle, data.yaw, data.pitch, data.roll);
 
-    esp_err_t result = esp_now_send(broadcast_address, (uint8_t*)&data, sizeof(data));
+    esp_err_t result = esp_now_send(broadcast_address, (uint8_t *)&data, sizeof(data));
 
-    if (result != ESP_OK) {
+    if (result != ESP_OK)
+    {
         Serial.println("Error sending the data");
     }
     // else {
@@ -161,6 +176,7 @@ void loop() {
     // }
 
     // do nothing until it's time for the next loop (every [PERIOD] seconds)
-    while (micros() - loopTimer < PERIOD * 1000000);
+    while (micros() - loopTimer < PERIOD * 1000000)
+        ;
     loopTimer = micros();
 }

@@ -91,6 +91,14 @@ angle_val_t ErrorRate = { 0, 0, 0 };
 angle_val_t PreviousErrorRate = { 0, 0, 0 };
 angle_val_t PreviousItermRate = { 0, 0, 0 };
 
+
+angle_val_t ErrorAngle = { 0, 0, 0 };
+angle_val_t PreviousErrorAngle = { 0, 0, 0 };
+angle_val_t PreviousItermAngle = { 0, 0, 0 };
+
+pid_constants_t angleRollPID = { 2, 0, 0 };
+pid_constants_t anglePitchPid = { 2, 0, 0 };
+
 struct_message controllerVals = { 0, 0, 0, 0 };
 
 void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {
@@ -140,6 +148,12 @@ void reset_pid() {
   PreviousItermRate.Pitch = 0;
   PreviousItermRate.Roll = 0;
   PreviousItermRate.Yaw = 0;
+
+  PreviousErrorAngle.Roll = 0;
+  PreviousErrorAngle.Pitch = 0;
+
+  PreviousItermAngle.Roll = 0;
+  PreviousItermAngle.Pitch = 0;
 }
 
 void motor_setup() {
@@ -215,10 +229,29 @@ void loop() {
     angleYaw -= 360;
   }
 
+  angle_val_t DesiredAngle = {.Pitch =controllerVals.pitch, .Roll=controllerVals.roll, .Yaw = 0};
+  ErrorAngle.Roll=DesiredAngle.Roll - kalmanAngleRoll;
+  ErrorAngle.Pitch=DesiredAngle.Pitch - kalmanAnglePitch;
+
+  pid_return_t rollAngleReturn = pid_equation(ErrorAngle.Roll, angleRollPID, PreviousErrorAngle.Roll, PreviousItermAngle.Roll);
+  pid_return_t rollPitchReturn = pid_equation(ErrorAngle.Pitch, anglePitchPid, PreviousErrorAngle.Pitch, PreviousItermAngle.Pitch);
+
+  angle_val_t DesiredRate = {0,0,0};
+  // update error
+  PreviousErrorAngle.Roll = rollAngleReturn.Error;
+  PreviousErrorAngle.Pitch = rollPitchReturn.Error;
+  //update Iterm
+  PreviousItermAngle.Roll = rollAngleReturn.Iterm;
+  PreviousItermAngle.Pitch = rollPitchReturn.Iterm;
+  //desired values
+  DesiredRate.Roll=rollAngleReturn.PIDOutput;
+  DesiredRate.Pitch=rollPitchReturn.PIDOutput;
+
+
   // printKalmanAngles();
 
-  ErrorRate.Roll = controllerVals.roll - rateRoll;
-  ErrorRate.Pitch = controllerVals.pitch - ratePitch;
+  ErrorRate.Roll = DesiredRate.Roll - rateRoll;
+  ErrorRate.Pitch = DesiredRate.Pitch - ratePitch;
   ErrorRate.Yaw = controllerVals.yaw - rateYaw;
 
   pid_return_t rollReturn = pid_equation(ErrorRate.Roll, rateRollPID, PreviousErrorRate.Roll, PreviousItermRate.Roll);
